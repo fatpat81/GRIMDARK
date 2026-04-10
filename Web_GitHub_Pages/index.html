@@ -75,7 +75,7 @@
             letter-spacing: 1px;
         }
 
-        select, button {
+        select, button, input[type="text"] {
             background-color: var(--surface-accent);
             color: var(--text-light);
             border: 1px solid var(--surface-border);
@@ -86,7 +86,7 @@
             transition: all 0.2s ease;
         }
 
-        select:focus, button:hover {
+        select:focus, button:hover, input[type="text"]:focus {
             border-color: var(--primary);
             box-shadow: 0 0 8px var(--primary-glow);
         }
@@ -427,10 +427,29 @@
                     <option value="">None (Faction Specific)</option>
                 </select>
             </div>
+            <div class="control-group">
+                <label>Display Filter</label>
+                <select id="displaySelect">
+                    <option value="both">Both</option>
+                    <option value="faction">Faction Only</option>
+                    <option value="core">Core Only</option>
+                    <option value="favorites">Favorites Only</option>
+                </select>
+            </div>
         </div>
         <div class="navbar-right">
-            <div class="file-input-wrapper">
-                <button>40K Templates</button>
+            <div class="control-group">
+                <label>Profile</label>
+                <input type="text" id="profileInput" placeholder="Sign In..." style="width: 120px;" />
+            </div>
+            <div class="control-group">
+                <label>History</label>
+                <select id="historySelect" style="width: 130px;">
+                    <option value="">No Saved Lists</option>
+                </select>
+            </div>
+            <div class="file-input-wrapper" style="margin-top: 15px;">
+                <button>Import List</button>
                 <input type="file" id="fileImport" accept=".html,.htm,.json,.ros,.rosz">
             </div>
             <button class="secondary" onclick="alert('To fetch live modifications from Wahapedia, please run the Updater.exe tool located inside your application folder. Since it accesses secure external CDNs, it must be run outside the browser environment.')">Update Database</button>
@@ -440,8 +459,8 @@
 
     <div class="instructions-block" id="instructionsHeader">
         <h2>Welcome to GRIMDARK Stratagem Generator</h2>
-        <p><strong>📜 40K Templates:</strong> Click "40K Templates" to load your <b>.html</b>, <b>.rosz</b> or <b>.ros</b> (40k App/New Recruit/BattleScribe) file. The app will automatically detect your units, Keywords, and Faction, outputting your personalized Stratagems.</p>
-        <p><strong>⚙️ Manual Selection:</strong> You can quickly browse by manually selecting your Faction and Detachment from the top navigation dropdowns.</p>
+        <p><strong>📜 Import List:</strong> Click "Import List" to load your <b>.html</b>, <b>.rosz</b> or <b>.ros</b> (40k App/New Recruit/BattleScribe) file. The app will automatically detect your units, Keywords, and Faction, outputting your personalized Stratagems.</p>
+        <p><strong>⚙️ Display & Favorites:</strong> Sign in with a Username profile to sync your <b>Favorites</b>. Toggle "Display Filters" to show Core, Faction, or exclusively your Favorites selections.</p>
         <p><strong>📱 Install App:</strong> You can install this app directly to your mobile device's home screen for permanent offline use via your browser's "Add to Home Screen" command!</p>
         <button onclick="document.getElementById('instructionsHeader').style.display='none'">Dismiss</button>
     </div>
