@@ -8,11 +8,114 @@ let importedUnits = [];
 let selectedFactionId = "Core";
 let selectedDetachmentName = "";
 
-// DOM Elements
+// Storage Manager
+const StorageManager = {
+    saveProfile: function(username) { localStorage.setItem('strat_profile', username); },
+    loadProfile: function() { return localStorage.getItem('strat_profile') || ""; },
+    toggleFav: function(username, stratId) {
+        if (!username) return;
+        let favs = this.getFavs(username);
+        if (favs.includes(stratId)) favs = favs.filter(id => id !== stratId);
+        else favs.push(stratId);
+        localStorage.setItem('strat_favs_' + username, JSON.stringify(favs));
+    },
+    getFavs: function(username) {
+        if (!username) return [];
+        let data = localStorage.getItem('strat_favs_' + username);
+        return data ? JSON.parse(data) : [];
+    },
+    saveListHistory: function(listName, dataObj) {
+        let history = this.getHistory();
+        history = history.filter(h => h.name !== listName);
+        history.unshift({ name: listName, data: dataObj, time: new Date().getTime() });
+        if (history.length > 5) history = history.slice(0, 5);
+        try { localStorage.setItem('strat_history', JSON.stringify(history)); } catch(e) { }
+    },
+    getHistory: function() {
+        let data = localStorage.getItem('strat_history');
+        return data ? JSON.parse(data) : [];
+    }
+};
+
+window.toggleFavStrat = function(stratName, factionId, elem) {
+    let profileInput = document.getElementById('profileInput');
+    let username = profileInput ? profileInput.value.trim() : "";
+    if (!username) { alert("Please enter a Profile Username in the top right to save favorites!"); return; }
+    
+    let key = stratName + "|" + factionId;
+    StorageManager.toggleFav(username, key);
+    let favs = StorageManager.getFavs(username);
+    
+    if (favs.includes(key)) {
+        elem.innerHTML = "⭐";
+        elem.classList.add("favorited");
+        elem.style.color = "gold";
+        elem.style.textShadow = "0 0 5px rgba(255, 215, 0, 0.5)";
+    } else {
+        elem.innerHTML = "☆";
+        elem.classList.remove("favorited");
+        elem.style.color = "var(--text-color)";
+        elem.style.textShadow = "none";
+    }
+    
+    let displaySelect = document.getElementById('displaySelect');
+    if (displaySelect && displaySelect.value === 'favorites') renderView();
+};
+
 const facSelect = document.getElementById('factionSelect');
 const detSelect = document.getElementById('detachmentSelect');
 const mainContent = document.getElementById('mainContent');
 const fileInput = document.getElementById('fileImport');
+const profileInput = document.getElementById('profileInput');
+const historySelect = document.getElementById('historySelect');
+const displaySelect = document.getElementById('displaySelect');
+
+if(profileInput) {
+    profileInput.value = StorageManager.loadProfile();
+    profileInput.addEventListener('change', (e) => {
+        StorageManager.saveProfile(e.target.value.trim());
+        renderView();
+    });
+}
+if(displaySelect) {
+    displaySelect.addEventListener('change', () => { renderView(); });
+}
+
+window.updateHistoryDropdown = function() {
+    if(!historySelect) return;
+    let h = StorageManager.getHistory();
+    historySelect.innerHTML = '<option value="">No Saved Lists</option>';
+    h.forEach((item, index) => {
+        let opt = document.createElement('option');
+        opt.value = index;
+        let d = new Date(item.time);
+        opt.textContent = `[${d.getMonth()+1}/${d.getDate()}] ${item.name.substring(0, 20)}`;
+        historySelect.appendChild(opt);
+    });
+};
+updateHistoryDropdown();
+
+if(historySelect) {
+    historySelect.addEventListener('change', (e) => {
+        let idx = e.target.value;
+        if (idx !== "") {
+            let h = StorageManager.getHistory();
+            let loaded = h[idx].data;
+            importedUnits = loaded.units;
+            selectedFactionId = loaded.faction;
+            facSelect.value = selectedFactionId;
+            updateDetachments();
+            selectedDetachmentName = loaded.detachment;
+            detSelect.value = selectedDetachmentName;
+            renderView();
+            
+            let t = document.getElementById('toast');
+            t.textContent = "List Loaded from History!";
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 3000);
+        }
+    });
+}
 
 // Initialize
 factions.forEach(f => {
@@ -73,8 +176,16 @@ function renderStratagem(s) {
     let detDisplay = (s.detachment && s.detachment.trim() !== '') ? s.detachment : 'Core';
     let blockClass = detDisplay !== 'Core' ? 'stratagem faction-detachment' : 'stratagem';
 
+    let username = profileInput ? profileInput.value.trim() : "";
+    let key = s.name + "|" + s.factionId;
+    let isFav = username && StorageManager.getFavs(username).includes(key);
+    let star = isFav ? "⭐" : "☆";
+    let favClass = isFav ? "favorited" : "";
+    let starStyle = isFav ? 'color: gold; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);' : 'color: var(--text-color);';
+
     return `
         <div class="${blockClass}">
+            <div style="float: right; font-size: 24px; cursor: pointer; ${starStyle}" class="fav-star ${favClass}" onclick="toggleFavStrat('${s.name.replace(/'/g,"\\'")}', '${s.factionId}', this)">${star}</div>
             <span class="cp">${s.cpCost} CP</span>
             <h2>${s.name}</h2>
             <div class="meta">
@@ -98,11 +209,25 @@ function renderView() {
     let coreStrats = stratagems.filter(s => s.factionId === "" || s.factionId === "Core" || (s.type && s.type.includes("Core")));
     let facStrats = [];
     if (selectedFactionId !== "Core") {
-        facStrats = stratagems.filter(s => s.factionId === selectedFactionId && (s.detachment.trim() === "" || s.detachment === selectedDetachmentName));
+        facStrats = stratagems.filter(s => s.factionId === selectedFactionId && (selectedDetachmentName === "" || s.detachment === selectedDetachmentName || s.detachment === ""));
+    }
+
+    let displaySelect = document.getElementById('displaySelect');
+    let filterVal = displaySelect ? displaySelect.value : "both";
+    
+    let baseStrats = coreStrats.concat(facStrats);
+    if (filterVal === "core") baseStrats = coreStrats;
+    if (filterVal === "faction") baseStrats = facStrats;
+    
+    let username = profileInput ? profileInput.value.trim() : "";
+    let favs = username ? StorageManager.getFavs(username) : [];
+    
+    let allStrats = baseStrats;
+    if (filterVal === "favorites") {
+        allStrats = baseStrats.filter(s => favs.includes(s.name + "|" + s.factionId));
     }
     
-    let allStrats = coreStrats.concat(facStrats)
-        .sort((a,b) => (a.factionId==="" ? 0 : 1) - (b.factionId==="" ? 0 : 1) || a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+    allStrats = allStrats.sort((a,b) => (a.factionId==="" ? 0 : 1) - (b.factionId==="" ? 0 : 1) || a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
 
     // Deduplicate by Name (Removes duplicate New Orders)
     allStrats = [...new Map(allStrats.map(item => [item.name, item])).values()];
@@ -139,8 +264,6 @@ function renderView() {
                         matches = true;
                     } else if (rawTarget !== "") {
                         if (rawTarget.toUpperCase().includes(unit.name.toUpperCase())) {
-                            matches = true;
-                        } else if (unit.keywords.some(kw => kw.length > 3 && rawTarget.toUpperCase().includes(kw.toUpperCase()))) {
                             matches = true;
                         }
                     }
@@ -181,26 +304,25 @@ fileInput.addEventListener('change', (e) => {
         reader.onload = (re) => {
             let data = JSON.parse(re.target.result);
             extractJsonUnits(data);
-            postImport();
+            postImport(file.name);
         };
         reader.readAsText(file);
     } else if (txt.endsWith('.ros')) {
         let reader = new FileReader();
         reader.onload = (re) => {
             parseRosXml(re.target.result);
-            postImport();
+            postImport(file.name);
         };
         reader.readAsText(file);
     } else if (txt.endsWith('.rosz')) {
         let reader = new FileReader();
         reader.onload = (re) => {
-            // Need jszip mapping. We included jszip in HTML
             JSZip.loadAsync(re.target.result).then(zip => {
                 let xmlFile = Object.values(zip.files).find(f => f.name.endsWith('.ros'));
                 if (xmlFile) {
                     xmlFile.async("string").then(content => {
                         parseRosXml(content);
-                        postImport();
+                        postImport(file.name);
                     });
                 }
             });
@@ -210,7 +332,7 @@ fileInput.addEventListener('change', (e) => {
         let reader = new FileReader();
         reader.onload = (re) => {
             parseHtml(re.target.result);
-            postImport();
+            postImport(file.name);
         };
         reader.readAsText(file);
     }
@@ -272,11 +394,26 @@ function parseHtml(htmlString) {
     }
 }
 
-function postImport() {
+function postImport(fileName) {
     renderView();
     let toast = document.getElementById("toast");
-    toast.className = "show";
-    setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+    if(toast) {
+        toast.textContent = "Army list successfully loaded!";
+        toast.className = "show";
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+    
+    if(fileName) {
+        let dataObj = {
+            units: importedUnits,
+            faction: selectedFactionId,
+            detachment: selectedDetachmentName
+        };
+        StorageManager.saveListHistory(fileName, dataObj);
+        if(window.updateHistoryDropdown) window.updateHistoryDropdown();
+        let historySelect = document.getElementById('historySelect');
+        if(historySelect) historySelect.value = "0";
+    }
 }
 
 function extractJsonUnits(obj) {
