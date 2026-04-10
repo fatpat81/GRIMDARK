@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GRIMDARK Stratagem Generator</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Stratagems">
+    <link rel="apple-touch-icon" href="wh40k_logo.png">
     
     <!-- Load JSZip for .rosz support -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -324,6 +329,43 @@
             bottom: 50px;
         }
 
+        @media screen and (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                padding: 10px;
+                position: relative;
+            }
+            .navbar-left, .navbar-right {
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+            }
+            .logo {
+                margin-bottom: 10px;
+            }
+            .control-group, .control-group select, button {
+                width: 100%;
+                font-size: 16px;
+                padding: 12px;
+            }
+            .stratagems-grid {
+                grid-template-columns: 1fr;
+                margin-left: 0;
+                padding-left: 0;
+                border-left: none;
+            }
+            .stratagem {
+                margin-bottom: 15px;
+            }
+            .instructions-block {
+                padding: 15px;
+                margin: 20px 10px 0 10px;
+            }
+            .container {
+                padding: 0 10px;
+            }
+        }
+
         @media print {
             :root {
                 --bg-color: #ffffff;
@@ -397,21 +439,28 @@
     </div>
 
     <div class="instructions-block" id="instructionsHeader">
-        <h2>Welcome to Stratagem Generator v2.0</h2>
+        <h2>Welcome to GRIMDARK Stratagem Generator</h2>
         <p><strong>📜 40K Templates:</strong> Click "40K Templates" to load your <b>.html</b>, <b>.rosz</b> or <b>.ros</b> (40k App/New Recruit/BattleScribe) file. The app will automatically detect your units, Keywords, and Faction, outputting your personalized Stratagems.</p>
         <p><strong>⚙️ Manual Selection:</strong> You can quickly browse by manually selecting your Faction and Detachment from the top navigation dropdowns.</p>
-        <p><strong>🔄 Update Database:</strong> Click the "Update Database" button for instructions on running the background <code>Updater.exe</code> tool, which securely connects to live Wahapedia servers to fetch the latest rule changes and balance updates.</p>
+        <p><strong>📱 Install App:</strong> You can install this app directly to your mobile device's home screen for permanent offline use via your browser's "Add to Home Screen" command!</p>
         <button onclick="document.getElementById('instructionsHeader').style.display='none'">Dismiss</button>
     </div>
 
     <div class="container" id="mainContent">
     </div>
 
-    <div class="version">v2.0 Web</div>
+    <div class="version">v2.1 Web Repository</div>
     
     <div id="toast">Army list successfully loaded!</div>
 
     <script src="data.js"></script>
     <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
 </body>
 </html>
