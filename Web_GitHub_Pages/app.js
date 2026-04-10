@@ -125,7 +125,8 @@ function renderView() {
             let filteredTargets = strat.targetKeywords.filter(k => !k.startsWith("RAW_TARGET_TEXT:"));
             let rawTarget = strat.targetKeywords.find(k => k.startsWith("RAW_TARGET_TEXT:")) || "";
             
-            let needsNoKeyword = (filteredTargets.length === 0 && rawTarget.trim() === "");
+            let isCore = (strat.factionId === "" || strat.factionId === "Core" || (strat.type && strat.type.includes("Core")));
+            let needsNoKeyword = (filteredTargets.length === 0 && (rawTarget.trim() === "" || isCore));
 
             for (let [unit, stratList] of unitStrats.entries()) {
                 let matches = false;
@@ -133,10 +134,13 @@ function renderView() {
                 if (needsNoKeyword) {
                     matches = true;
                 } else {
-                    if (filteredTargets.some(kw => unit.keywords.includes(kw))) {
+                    let allKw = " " + unit.keywords.join(" ") + " ";
+                    if (filteredTargets.some(kw => allKw.includes(" " + kw + " "))) {
                         matches = true;
-                    } else if (rawTarget !== "" && filteredTargets.length === 0) {
+                    } else if (rawTarget !== "") {
                         if (rawTarget.toUpperCase().includes(unit.name.toUpperCase())) {
+                            matches = true;
+                        } else if (unit.keywords.some(kw => kw.length > 3 && rawTarget.toUpperCase().includes(kw.toUpperCase()))) {
                             matches = true;
                         }
                     }

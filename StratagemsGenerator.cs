@@ -546,18 +546,22 @@ public class Program : Form
                 var filteredTargets = strat.TargetKeywords.Where(k => !k.StartsWith("RAW_TARGET_TEXT:")).ToList();
                 string rawTarget = strat.TargetKeywords.FirstOrDefault(k => k.StartsWith("RAW_TARGET_TEXT:")) ?? "";
                 
-                bool needsNoKeyword = (filteredTargets.Count == 0 && string.IsNullOrWhiteSpace(rawTarget));
+                bool isCore = (strat.FactionId == "" || strat.FactionId == "Core" || strat.Type.IndexOf("Core", StringComparison.OrdinalIgnoreCase) >= 0);
+                bool needsNoKeyword = (filteredTargets.Count == 0 && (string.IsNullOrWhiteSpace(rawTarget) || isCore));
 
                 foreach(var unit in importedUnits) {
                     bool matches = false;
                     
                     if (needsNoKeyword) {
-                        matches = true; // Assign stratagems that do not need a keyword to all units
+                        matches = true; // Assign Core stratagems to all units unless restricted
                     } else {
-                        if (filteredTargets.Any(kw => unit.Keywords.Contains(kw))) {
+                        string allKw = " " + string.Join(" ", unit.Keywords) + " ";
+                        if (filteredTargets.Any(kw => allKw.Contains(" " + kw + " "))) {
                             matches = true;
-                        } else if (!string.IsNullOrWhiteSpace(rawTarget) && filteredTargets.Count == 0) {
+                        } else if (!string.IsNullOrWhiteSpace(rawTarget)) {
                             if (rawTarget.IndexOf(unit.Name, StringComparison.OrdinalIgnoreCase) >= 0) {
+                                matches = true;
+                            } else if (unit.Keywords.Any(kw => kw.Length > 3 && rawTarget.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)) {
                                 matches = true;
                             }
                         }
